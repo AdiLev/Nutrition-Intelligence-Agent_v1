@@ -1,13 +1,12 @@
 from pathlib import Path
 from typing import List
-from langchain.chains import LLMChain
-from langchain.prompts import PromptTemplate
+from langchain_core.prompts import PromptTemplate
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.runnables import RunnablePassthrough
 from langchain_community.document_loaders import TextLoader, PyPDFLoader
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_community.embeddings import OllamaEmbeddings
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_ollama import OllamaEmbeddings, ChatOllama
 from langchain_community.vectorstores import Chroma
-from langchain_community.chat_models import ChatOllama
-from langchain.chains import RetrievalQA
 
 DB_DIR = "rag_db"
 MODEL_NAME = "llama3.1"
@@ -92,8 +91,8 @@ def retrieve_docs(query: str):
     retriever = vectordb.as_retriever(search_kwargs={"k": 10})
     docs = retriever.invoke(query)
 
-    # 🔍 DEBUG
-    print("\n🔍 Retrieval Debug")
+    # DEBUG
+    print("\n[DEBUG] Retrieval Debug")
     print(f"Query: {query}")
     for i, doc in enumerate(docs, 1):
         print(f"\nChunk {i}")
@@ -112,19 +111,15 @@ def run_rag(question: str) -> str:
     retriever = vectordb.as_retriever(search_kwargs={"k": 10})
     docs = retriever.invoke(question)
 
-    print("\n🔍 RUN_RAG DEBUG")
+    print("\n[DEBUG] RUN_RAG DEBUG")
     for i, doc in enumerate(docs, 1):
         print(f"\nChunk {i}")
         print(doc.page_content[:300])
 
     context = "\n\n".join(doc.page_content for doc in docs)
 
-    chain = LLMChain(
-        llm=llm,
-        prompt=RAG_PROMPT,
-    )
-
-    return chain.run(
-        context=context,
-        question=question,
-    )
+    # Use LCEL (LangChain Expression Language) for v1.x
+    chain = RAG_PROMPT | llm | StrOutputParser()
+    
+    result = chain.invoke({"question": question, "context": context})
+    return result

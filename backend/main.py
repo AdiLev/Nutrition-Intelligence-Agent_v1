@@ -31,6 +31,19 @@ class ChatRequest(BaseModel):
     messages: List[Message]
 
 
+@app.get("/")
+def root():
+    return {
+        "message": "Nutrition Intelligence Agent API",
+        "version": "1.0",
+        "endpoints": {
+            "docs": "/docs",
+            "ingest": "/ingest (POST)",
+            "rag_chat": "/rag-chat (POST)"
+        }
+    }
+
+
 @app.post("/ingest")
 async def ingest(file: UploadFile = File(...)):
     upload_dir = Path("uploaded")
